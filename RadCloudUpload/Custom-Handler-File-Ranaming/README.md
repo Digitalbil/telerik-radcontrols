@@ -1,8 +1,8 @@
 # RadCloudUpload
 
-[Demos][www.demos.telerik.com/aspnet-ajax/cloud-upload/examples/overview/defaultcs.aspx]
+[Demos](www.demos.telerik.com/aspnet-ajax/cloud-upload/examples/overview/defaultcs.aspx)
 
-[Help][www.telerik.com/help/aspnet-ajax/cloud-upload-overview.html]
+[Help](www.telerik.com/help/aspnet-ajax/cloud-upload-overview.html)
 
 ## Note
 
