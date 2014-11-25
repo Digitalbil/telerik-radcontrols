@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Tasks>
+    <Task>
+      <ID>1</ID>
+      <ParentID />
+      <Start>2014-05-05T08:00:00Z</Start>
+      <End>2014-05-16T20:00:00Z</End>
+      <Title>Defining selection criteria</Title>
+      <PercentComplete>0.39</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>0</OrderID>
+    </Task>
+    <NextID>12</NextID>
+    <Task>
+      <ID>2</ID>
+      <ParentID>5</ParentID>
+      <Start>2014-05-19T08:00:00Z</Start>
+      <End>2014-06-03T20:00:00Z</End>
+      <Title>Advertising the position</Title>
+      <PercentComplete>1</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>0</OrderID>
+    </Task>
+    <Task>
+      <ID>3</ID>
+      <ParentID>5</ParentID>
+      <Start>2014-05-19T08:00:00Z</Start>
+      <End>2014-06-03T20:00:00Z</End>
+      <Title>Collecting job applications</Title>
+      <PercentComplete>0.5</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>1</OrderID>
+    </Task>
+    <Task>
+      <ID>4</ID>
+      <ParentID />
+      <Start>2014-06-04T08:00:00Z</Start>
+      <End>2014-06-20T20:00:00Z</End>
+      <Title>Categorizing applications</Title>
+      <PercentComplete>0.5</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>2</OrderID>
+    </Task>
+    <Task>
+      <ID>5</ID>
+      <ParentID />
+      <Start>2014-05-19T08:00:00Z</Start>
+      <End>2014-06-03T20:00:00Z</End>
+      <Title>Researching the market for candidates</Title>
+      <PercentComplete>0.75</PercentComplete>
+      <Summary>true</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>1</OrderID>
+    </Task>
+    <Task>
+      <ID>6</ID>
+      <ParentID />
+      <Start>2014-06-23T08:00:00Z</Start>
+      <End>2014-08-06T08:00:00Z</End>
+      <Title>Assessing applicants</Title>
+      <PercentComplete>0.19333333333333336</PercentComplete>
+      <Summary>true</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>3</OrderID>
+    </Task>
+    <Task>
+      <ID>7</ID>
+      <ParentID>6</ParentID>
+      <Start>2014-06-23T08:00:00Z</Start>
+      <End>2014-07-11T20:00:00Z</End>
+      <Title>Interview with Human Resources representatives</Title>
+      <PercentComplete>0.24</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>0</OrderID>
+    </Task>
+    <Task>
+      <ID>8</ID>
+      <ParentID>6</ParentID>
+      <Start>2014-07-14T08:00:00Z</Start>
+      <End>2014-07-25T08:00:00Z</End>
+      <Title>Asigning and reviewing a sample test task</Title>
+      <PercentComplete>0.34</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>1</OrderID>
+    </Task>
+    <Task>
+      <ID>9</ID>
+      <ParentID>6</ParentID>
+      <Start>2014-07-28T08:00:00Z</Start>
+      <End>2014-08-06T08:00:00Z</End>
+      <Title>Interview with Development Team representatives</Title>
+      <PercentComplete>0</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>2</OrderID>
+    </Task>
+    <Task>
+      <ID>10</ID>
+      <ParentID />
+      <Start>2014-08-06T08:00:00Z</Start>
+      <End>2014-08-15T20:00:00Z</End>
+      <Title>Creating and proposing the job offer</Title>
+      <PercentComplete>0</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>4</OrderID>
+    </Task>
+    <Task>
+      <ID>11</ID>
+      <ParentID />
+      <Start>2014-08-18T08:00:00Z</Start>
+      <End>2014-08-22T14:00:00Z</End>
+      <Title>Hiring applicant</Title>
+      <PercentComplete>0</PercentComplete>
+      <Summary>false</Summary>
+      <Expanded>true</Expanded>
+      <OrderID>5</OrderID>
+    </Task>
+  </Tasks>
+  <Dependencies>
+    <Dependency>
+      <ID>1</ID>
+      <PredecessorID>1</PredecessorID>
+      <SuccessorID>2</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <NextID>12</NextID>
+    <Dependency>
+      <ID>2</ID>
+      <PredecessorID>1</PredecessorID>
+      <SuccessorID>3</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>5</ID>
+      <PredecessorID>2</PredecessorID>
+      <SuccessorID>3</SuccessorID>
+      <Type>FinishFinish</Type>
+    </Dependency>
+    <Dependency>
+      <ID>6</ID>
+      <PredecessorID>3</PredecessorID>
+      <SuccessorID>4</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>7</ID>
+      <PredecessorID>4</PredecessorID>
+      <SuccessorID>7</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>8</ID>
+      <PredecessorID>7</PredecessorID>
+      <SuccessorID>8</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>9</ID>
+      <PredecessorID>8</PredecessorID>
+      <SuccessorID>9</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>10</ID>
+      <PredecessorID>9</PredecessorID>
+      <SuccessorID>10</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+    <Dependency>
+      <ID>11</ID>
+      <PredecessorID>10</PredecessorID>
+      <SuccessorID>11</SuccessorID>
+      <Type>FinishStart</Type>
+    </Dependency>
+  </Dependencies>
+</Project>
