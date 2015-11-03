@@ -1,0 +1,30 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="MasterPage.master.cs" Inherits="MasterPage" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <telerik:RadScriptManager ID="RadScriptManager1" runat="server">        
+        </telerik:RadScriptManager>
+
+        <telerik:RadMenu runat="server" ID="menu">
+            <Items>
+                <telerik:RadMenuItem Text="Home"></telerik:RadMenuItem>
+                <telerik:RadMenuItem Text="Contacts"></telerik:RadMenuItem>
+                <telerik:RadMenuItem Text="About"></telerik:RadMenuItem>
+            </Items>
+        </telerik:RadMenu>
+
+        <div>
+            <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+            </asp:ContentPlaceHolder>
+        </div>
+    </form>
+</body>
+</html>
