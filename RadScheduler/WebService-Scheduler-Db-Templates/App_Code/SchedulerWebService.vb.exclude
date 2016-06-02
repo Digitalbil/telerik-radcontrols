@@ -1,0 +1,82 @@
+﻿Imports System.Web.Services
+Imports System.Web.Services.Protocols
+Imports System.ComponentModel
+Imports Telerik.Web.UI
+Imports System.Data.Common
+
+' To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line.
+<System.Web.Script.Services.ScriptService()> _
+<System.Web.Services.WebService(Namespace:="http://tempuri.org/")> _
+<System.Web.Services.WebServiceBinding(ConformsTo:=WsiProfiles.BasicProfile1_1)> _
+<ToolboxItem(False)> _
+Public Class SchedulerWebService
+    Inherits System.Web.Services.WebService
+
+    Private _controller As WebServiceAppointmentController
+    'private MySchedulerInfo localSchedulerInfo;
+    Private _provider As MyDbSchedulerProvider
+    Private ReadOnly Property Provider() As MyDbSchedulerProvider
+        Get
+            If _provider Is Nothing Then
+                Dim connString = ConfigurationManager.ConnectionStrings("TelerikVSXConnectionString").ConnectionString
+                Dim factory = DbProviderFactories.GetFactory("System.Data.SqlClient")
+                _provider = New MyDbSchedulerProvider() With { _
+                 .ConnectionString = connString, _
+                 .DbFactory = factory, _
+                 .PersistChanges = True _
+                }
+            End If
+            Return _provider
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' The WebServiceAppointmentController class is used as a facade to the SchedulerProvider.
+    ''' </summary>
+    Private ReadOnly Property Controller() As WebServiceAppointmentController
+        Get
+            If _controller Is Nothing Then
+                _controller = New WebServiceAppointmentController(Provider)
+            End If
+
+            Return _controller
+        End Get
+    End Property
+
+    <WebMethod()> _
+    Public Function GetAppointments(ByVal schedulerInfo As MySchedulerInfo) As IEnumerable(Of AppointmentData)
+        Return Controller.GetAppointments(schedulerInfo)
+    End Function
+
+    <WebMethod()> _
+    Public Function InsertAppointment(ByVal schedulerInfo As MySchedulerInfo, ByVal appointmentData As AppointmentData) As IEnumerable(Of AppointmentData)
+        Return Controller.InsertAppointment(schedulerInfo, appointmentData)
+    End Function
+
+    <WebMethod()> _
+    Public Function UpdateAppointment(ByVal schedulerInfo As MySchedulerInfo, ByVal appointmentData As AppointmentData) As IEnumerable(Of AppointmentData)
+        Return Controller.UpdateAppointment(schedulerInfo, appointmentData)
+    End Function
+
+    <WebMethod()> _
+    Public Function CreateRecurrenceException(ByVal schedulerInfo As MySchedulerInfo, ByVal recurrenceExceptionData As AppointmentData) As IEnumerable(Of AppointmentData)
+        Return Controller.CreateRecurrenceException(schedulerInfo, recurrenceExceptionData)
+    End Function
+
+    <WebMethod()> _
+    Public Function RemoveRecurrenceExceptions(ByVal schedulerInfo As SchedulerInfo, ByVal masterAppointmentData As AppointmentData) As IEnumerable(Of AppointmentData)
+        Return Controller.RemoveRecurrenceExceptions(schedulerInfo, masterAppointmentData)
+    End Function
+
+    <WebMethod()> _
+    Public Function DeleteAppointment(ByVal schedulerInfo As MySchedulerInfo, ByVal appointmentData As AppointmentData, ByVal deleteSeries As Boolean) As IEnumerable(Of AppointmentData)
+        Return Controller.DeleteAppointment(schedulerInfo, appointmentData, deleteSeries)
+    End Function
+
+    <WebMethod()> _
+    Public Function GetResources(ByVal schedulerInfo As MySchedulerInfo) As IEnumerable(Of ResourceData)
+        Return Controller.GetResources(schedulerInfo)
+    End Function
+
+End Class
+

@@ -1,0 +1,297 @@
+﻿
+
+Imports System
+Imports System.Collections.Generic
+Imports System.Data.Common
+Imports System.Data.SqlClient
+Imports Telerik.Web.UI
+
+Public Class MyDbSchedulerProvider
+    Inherits DbSchedulerProviderBase
+    Private _teachers As IDictionary(Of Integer, Resource)
+    Private _students As IDictionary(Of Integer, Resource)
+
+    Private ReadOnly Property Teachers() As IDictionary(Of Integer, Resource)
+        Get
+            If _teachers Is Nothing Then
+                _teachers = New Dictionary(Of Integer, Resource)()
+                For Each teacher As Resource In LoadTeachers()
+                    _teachers.Add(CInt(teacher.Key), teacher)
+                Next
+            End If
+
+            Return _teachers
+        End Get
+    End Property
+
+    Private ReadOnly Property Students() As IDictionary(Of Integer, Resource)
+        Get
+            _students = New Dictionary(Of Integer, Resource)()
+            For Each student As Resource In LoadStudents()
+                _students.Add(CInt(student.Key), student)
+            Next
+
+            Return _students
+        End Get
+    End Property
+
+    Public Overrides Function GetAppointments(ByVal shedulerInfo As ISchedulerInfo) As IEnumerable(Of Appointment)
+        Dim myInfo = TryCast(shedulerInfo, MySchedulerInfo)
+        Dim teacherID As String = myInfo.TeacherID
+
+        Dim appointments As New List(Of Appointment)()
+
+        Using conn As DbConnection = OpenConnection()
+            Dim cmd As DbCommand = DbFactory.CreateCommand()
+            cmd.Connection = conn
+            cmd.CommandText = "SELECT [ClassID], [Subject], [Start], [End], [RecurrenceRule], [RecurrenceParentId], [Reminder], [Test] FROM [DbProvider_Classes]"
+
+            If teacherID <> "all" Then
+                cmd.CommandText += "WHERE TeacherID = " + teacherID
+            End If
+
+            Using reader As DbDataReader = cmd.ExecuteReader()
+                While reader.Read()
+                    Dim apt As New Appointment()
+                    'apt.Owner = owner;
+                    apt.ID = reader("ClassID")
+                    apt.Subject = Convert.ToString(reader("Subject"))
+                    apt.Start = DateTime.SpecifyKind(Convert.ToDateTime(reader("Start")), DateTimeKind.Utc)
+                    apt.[End] = DateTime.SpecifyKind(Convert.ToDateTime(reader("End")), DateTimeKind.Utc)
+                    apt.RecurrenceRule = Convert.ToString(reader("RecurrenceRule"))
+                    apt.RecurrenceParentID = If(reader("RecurrenceParentId") Is DBNull.Value, Nothing, reader("RecurrenceParentId"))
+                    apt.Attributes("Test") = Convert.ToString(reader("Test"))
+
+
+                    If Not reader("Reminder") Is DBNull.Value Then
+                        Dim reminders As IList(Of Reminder) = Reminder.TryParse(Convert.ToString(reader("Reminder")))
+                        If reminders IsNot Nothing Then
+                            apt.Reminders.AddRange(reminders)
+                        End If
+                    End If
+
+                    If apt.RecurrenceParentID IsNot Nothing Then
+                        apt.RecurrenceState = RecurrenceState.Exception
+                    ElseIf apt.RecurrenceRule <> String.Empty Then
+                        apt.RecurrenceState = RecurrenceState.Master
+                    End If
+
+                    LoadResources(apt)
+                    appointments.Add(apt)
+                End While
+            End Using
+        End Using
+
+        Return appointments
+    End Function
+
+    Public Overrides Sub Insert(ByVal schedulerInfo As ISchedulerInfo, ByVal appointmentToInsert As Appointment)
+        If Not PersistChanges Then
+            Return
+        End If
+
+        Using conn As DbConnection = OpenConnection()
+            Using tran As DbTransaction = conn.BeginTransaction()
+                Dim cmd As DbCommand = DbFactory.CreateCommand()
+                cmd.Connection = conn
+                cmd.Transaction = tran
+
+                PopulateAppointmentParameters(cmd, appointmentToInsert)
+
+                cmd.CommandText = vbTab & "INSERT" & vbTab & "INTO [DbProvider_Classes]" & vbCr & vbLf & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & "([Subject], [Start], [End], [TeacherID]," & vbCr & vbLf & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & "[RecurrenceRule], [RecurrenceParentID], [Reminder], [Test])" & vbCr & vbLf & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & "VALUES" & vbTab & "(@Subject, @Start, @End, @TeacherID," & vbCr & vbLf & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & vbTab & "@RecurrenceRule, @RecurrenceParentID, @Reminder, @Test)"
+
+                If TypeOf DbFactory Is SqlClientFactory Then
+                    cmd.CommandText += Environment.NewLine + "SELECT SCOPE_IDENTITY()"
+                Else
+                    cmd.ExecuteNonQuery()
+
+                    cmd.CommandText = "SELECT @@IDENTITY"
+                End If
+                Dim identity As Integer = Convert.ToInt32(cmd.ExecuteScalar())
+
+                FillClassStudents(appointmentToInsert, cmd, identity)
+
+                tran.Commit()
+            End Using
+        End Using
+    End Sub
+
+    Public Overrides Sub Update(ByVal schedulerInfo As ISchedulerInfo, ByVal appointmentToUpdate As Appointment)
+        If Not PersistChanges Then
+            Return
+        End If
+
+        Using conn As DbConnection = OpenConnection()
+            Using tran As DbTransaction = conn.BeginTransaction()
+                Dim cmd As DbCommand = DbFactory.CreateCommand()
+                cmd.Connection = conn
+                cmd.Transaction = tran
+
+                PopulateAppointmentParameters(cmd, appointmentToUpdate)
+
+                cmd.Parameters.Add(CreateParameter("@ClassID", appointmentToUpdate.ID))
+                cmd.CommandText = "UPDATE [DbProvider_Classes] SET [Subject] = @Subject, [Start] = @Start, [End] = @End, [TeacherID] = @TeacherID, [RecurrenceRule] = @RecurrenceRule, [RecurrenceParentID] = @RecurrenceParentID, [Test] = @Test WHERE [ClassID] = @ClassID"
+                cmd.ExecuteNonQuery()
+
+                ClearClassStudents(appointmentToUpdate.ID, cmd)
+
+                FillClassStudents(appointmentToUpdate, cmd, appointmentToUpdate.ID)
+
+                tran.Commit()
+            End Using
+        End Using
+    End Sub
+
+    Public Overrides Sub Delete(ByVal schedulerInfo As ISchedulerInfo, ByVal appointmentToDelete As Appointment)
+        If Not PersistChanges Then
+            Return
+        End If
+
+        Using conn As DbConnection = OpenConnection()
+            Dim cmd As DbCommand = DbFactory.CreateCommand()
+            cmd.Connection = conn
+
+            Using tran As DbTransaction = conn.BeginTransaction()
+                cmd.Transaction = tran
+
+                ClearClassStudents(appointmentToDelete.ID, cmd)
+
+                cmd.Parameters.Clear()
+                cmd.Parameters.Add(CreateParameter("@ClassID", appointmentToDelete.ID))
+                cmd.CommandText = "DELETE FROM [DbProvider_Classes] WHERE [ClassID] = @ClassID"
+                cmd.ExecuteNonQuery()
+
+                tran.Commit()
+            End Using
+        End Using
+    End Sub
+
+    Public Overrides Function GetResources(ByVal schedulerInfo As ISchedulerInfo) As IDictionary(Of ResourceType, IEnumerable(Of Resource))
+
+        Dim resCollection As New Dictionary(Of ResourceType, IEnumerable(Of Resource))()
+        resCollection.Add(New ResourceType("Teacher", False), Teachers.Values)
+        resCollection.Add(New ResourceType("Student", True), Students.Values)
+
+        Return resCollection
+    End Function
+
+    Private Sub LoadResources(ByVal apt As Appointment)
+        Using conn As DbConnection = OpenConnection()
+            Dim cmd As DbCommand = DbFactory.CreateCommand()
+            cmd.Connection = conn
+
+            cmd.Parameters.Add(CreateParameter("@ClassID", apt.ID))
+            cmd.CommandText = "SELECT [TeacherID] FROM [DbProvider_Classes] WHERE [ClassID] = @ClassID AND [TeacherID] IS NOT NULL"
+            Using reader As DbDataReader = cmd.ExecuteReader()
+                If reader.Read() Then
+                    Dim teacher As Resource = Teachers(Convert.ToInt32(reader("TeacherID")))
+                    apt.Resources.Add(teacher)
+                End If
+            End Using
+
+            cmd.Parameters.Clear()
+            cmd.Parameters.Add(CreateParameter("@ClassID", apt.ID))
+            cmd.CommandText = "SELECT [StudentID] FROM [DbProvider_ClassStudents] WHERE [ClassID] = @ClassID"
+            Using reader As DbDataReader = cmd.ExecuteReader()
+                While reader.Read()
+                    Dim student As Resource = Students(Convert.ToInt32(reader("StudentID")))
+                    apt.Resources.Add(student)
+                End While
+            End Using
+        End Using
+    End Sub
+
+    Private Function LoadTeachers() As IEnumerable(Of Resource)
+        Dim resources As New List(Of Resource)()
+
+        Using conn As DbConnection = OpenConnection()
+            Dim cmd As DbCommand = DbFactory.CreateCommand()
+            cmd.Connection = conn
+            cmd.CommandText = "SELECT [TeacherID], [Name], [Phone] FROM [DbProvider_Teachers]"
+
+            Using reader As DbDataReader = cmd.ExecuteReader()
+                While reader.Read()
+                    Dim res As New Resource()
+                    res.Type = "Teacher"
+                    res.Key = reader("TeacherID")
+                    res.Text = Convert.ToString(reader("Name"))
+                    res.Attributes("Phone") = Convert.ToString(reader("Phone"))
+                    resources.Add(res)
+                End While
+            End Using
+        End Using
+
+        Return resources
+    End Function
+
+    Private Function LoadStudents() As IEnumerable(Of Resource)
+        Dim resources As New List(Of Resource)()
+
+        Using conn As DbConnection = OpenConnection()
+            Dim cmd As DbCommand = DbFactory.CreateCommand()
+            cmd.Connection = conn
+            cmd.CommandText = "SELECT [StudentID], [Name] FROM [DbProvider_Students]"
+
+            Using reader As DbDataReader = cmd.ExecuteReader()
+                While reader.Read()
+                    Dim res As New Resource()
+                    res.Type = "Student"
+                    res.Key = reader("StudentID")
+                    res.Text = Convert.ToString(reader("Name"))
+                    resources.Add(res)
+                End While
+            End Using
+        End Using
+
+        Return resources
+    End Function
+
+    Private Sub FillClassStudents(ByVal appointment As Appointment, ByVal cmd As DbCommand, ByVal classId As Object)
+        For Each student As Resource In appointment.Resources.GetResourcesByType("Student")
+            cmd.Parameters.Clear()
+            cmd.Parameters.Add(CreateParameter("@ClassID", classId))
+            cmd.Parameters.Add(CreateParameter("@StudentID", student.Key))
+
+            cmd.CommandText = "INSERT INTO [DbProvider_ClassStudents] ([ClassID], [StudentID]) VALUES (@ClassID, @StudentID)"
+            cmd.ExecuteNonQuery()
+        Next
+    End Sub
+
+    Private Sub ClearClassStudents(ByVal classId As Object, ByVal cmd As DbCommand)
+        cmd.Parameters.Clear()
+        cmd.Parameters.Add(CreateParameter("@ClassID", classId))
+        cmd.CommandText = "DELETE FROM [DbProvider_ClassStudents] WHERE [ClassID] = @ClassID"
+        cmd.ExecuteNonQuery()
+    End Sub
+
+    Private Sub PopulateAppointmentParameters(ByVal cmd As DbCommand, ByVal apt As Appointment)
+        cmd.Parameters.Add(CreateParameter("@Subject", apt.Subject))
+        cmd.Parameters.Add(CreateParameter("@Start", apt.Start))
+        cmd.Parameters.Add(CreateParameter("@End", apt.[End]))
+
+        Dim teacher As Resource = apt.Resources.GetResourceByType("Teacher")
+        Dim teacherId As Object = Nothing
+        If teacher IsNot Nothing Then
+            teacherId = teacher.Key
+        End If
+        cmd.Parameters.Add(CreateParameter("@TeacherID", teacherId))
+
+        Dim rrule As String = Nothing
+        If apt.RecurrenceRule <> String.Empty Then
+            rrule = apt.RecurrenceRule
+        End If
+        cmd.Parameters.Add(CreateParameter("@RecurrenceRule", rrule))
+
+        Dim parentId As Object = Nothing
+        If apt.RecurrenceParentID IsNot Nothing Then
+            parentId = apt.RecurrenceParentID
+        End If
+        cmd.Parameters.Add(CreateParameter("@RecurrenceParentId", parentId))
+
+        cmd.Parameters.Add(CreateParameter("@Reminder", apt.Reminders.ToString()))
+        cmd.Parameters.Add(CreateParameter("@Test", apt.Attributes("Test")))
+    End Sub
+End Class
+
+
+

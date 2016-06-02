@@ -1,0 +1,24 @@
+﻿
+Imports Telerik.Web.UI
+
+Public Class MySchedulerInfo
+    Inherits SchedulerInfo
+    Public Property TeacherID() As String
+        Get
+            Return m_TeacherID
+        End Get
+        Set(ByVal value As String)
+            m_TeacherID = value
+        End Set
+    End Property
+    Private m_TeacherID As String
+    Public Sub New(ByVal baseInfo As ISchedulerInfo, ByVal teacherID__1 As String)
+        MyBase.New(baseInfo)
+        TeacherID = teacherID__1
+    End Sub
+
+    Public Sub New()
+    End Sub
+End Class
+
+
